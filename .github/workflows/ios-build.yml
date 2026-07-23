@@ -71,8 +71,18 @@ jobs:
           # directly on the App target's Release config in project.pbxproj —
           # passing these as blanket CLI overrides also applies them to the
           # Pods library targets, which don't support provisioning profiles.
+          #
+          # CURRENT_PROJECT_VERSION (the build number) is safe to override
+          # workspace-wide, unlike the signing settings above — it's just a
+          # version string, not something Pods targets reject. App Store
+          # Connect requires every upload to have a strictly higher build
+          # number than the last, so this is set to the GitHub Actions run
+          # number (always increasing) rather than the static "1" committed
+          # in project.pbxproj — otherwise every re-run after the first
+          # upload fails with ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE.
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
-            -archivePath $RUNNER_TEMP/App.xcarchive archive
+            -archivePath $RUNNER_TEMP/App.xcarchive archive \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }}
 
       - name: Export IPA
         run: |
