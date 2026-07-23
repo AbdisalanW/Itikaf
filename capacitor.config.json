@@ -1,0 +1,6 @@
+{
+  "appId": "com.itikaf.app",
+  "appName": "Itikaf",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

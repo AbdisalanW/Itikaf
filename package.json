@@ -1,0 +1,17 @@
+{
+  "name": "itikaf",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Itikaf — audio-journal a dilemma, get a matched dua/verse and a sunnah istighfar.",
+  "scripts": {
+    "sync": "cp index.html sw.js manifest.json privacy.html www/ 2>/dev/null; npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2",
+    "@capacitor/android": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

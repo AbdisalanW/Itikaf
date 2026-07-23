@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Itikaf</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f1418" />
+<style>
+  :root {
+    --bg: #0f1418;
+    --card: #161d22;
+    --accent: #7fb894;
+    --text: #e8ece9;
+    --muted: #8b9a93;
+    --danger: #d97066;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  .screen { display: none; padding: 24px 20px 100px; max-width: 480px; margin: 0 auto; }
+  .screen.active { display: block; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+  input {
+    width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 10px;
+    border: 1px solid #2a343a; background: var(--card); color: var(--text); font-size: 1rem;
+  }
+  button {
+    width: 100%; padding: 14px; border-radius: 10px; border: none;
+    background: var(--accent); color: #08110c; font-weight: 600; font-size: 1rem; cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button:disabled { opacity: 0.5; }
+  .error { color: var(--danger); font-size: 0.85rem; margin: -4px 0 12px; }
+  .card {
+    background: var(--card); border-radius: 14px; padding: 18px; margin-bottom: 14px;
+  }
+  .record-wrap { text-align: center; margin: 60px 0 30px; }
+  #recordBtn {
+    width: 96px; height: 96px; border-radius: 50%; background: var(--accent);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 2rem;
+  }
+  #recordBtn.recording { background: var(--danger); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(217,112,102,0.5);} 100% { box-shadow: 0 0 0 24px rgba(217,112,102,0);} }
+  .status { text-align: center; color: var(--muted); margin-bottom: 20px; }
+  .arabic { font-size: 1.3rem; text-align: right; direction: rtl; margin-bottom: 8px; line-height: 1.8; }
+  .translation { color: var(--text); margin-bottom: 6px; }
+  .source { color: var(--muted); font-size: 0.8rem; }
+  .tag { display: inline-block; background: #1e2a26; color: var(--accent); font-size: 0.75rem;
+    padding: 3px 10px; border-radius: 20px; margin-right: 6px; }
+  .crisis-card { background: #241a18; border: 1px solid var(--danger); }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
+    display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #2a343a; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; text-align: center; }
+  nav a.active { color: var(--accent); }
+  .hint { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+  a.link { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="screen active" id="screen-auth">
+  <h1>Itikaf</h1>
+  <p class="sub">A private moment to speak your dilemma and find a dua for it.</p>
+  <div class="card">
+    <input type="email" id="authEmail" placeholder="Email" autocomplete="email" />
+    <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" />
+    <div class="error" id="authError" style="display:none;"></div>
+    <button id="signInBtn">Sign in</button>
+    <div style="height:10px"></div>
+    <button class="secondary" id="signUpBtn">Create account</button>
+  </div>
+  <p class="hint">Your journal is encrypted on your device before it's ever stored. See our <a class="link" href="privacy.html">privacy policy</a>.</p>
+</div>
+
+<!-- JOURNAL (record) -->
+<div class="screen" id="screen-journal">
+  <h1>Speak freely</h1>
+  <p class="sub">Talk in whatever language feels natural. We'll listen and respond.</p>
+  <div class="record-wrap">
+    <button id="recordBtn">&#127908;</button>
+  </div>
+  <p class="status" id="recordStatus">Tap to start recording</p>
+  <div id="journalResult"></div>
+</div>
+
+<!-- HISTORY -->
+<div class="screen" id="screen-history">
+  <h1>Your reflections</h1>
+  <p class="sub">Only visible on this device — transcripts are encrypted at rest.</p>
+  <div id="historyList"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <h1>Settings</h1>
+  <div class="card">
+    <p class="translation">Signed in as <span id="settingsEmail"></span></p>
+    <button class="secondary" id="signOutBtn">Sign out</button>
+  </div>
+  <p class="hint">
+    We never sell or share your data with third parties. Raw audio is deleted immediately
+    after transcription. Read the full <a class="link" href="privacy.html">privacy policy</a>.
+  </p>
+</div>
+
+<nav id="nav" style="display:none;">
+  <a href="#" data-screen="journal">Journal</a>
+  <a href="#" data-screen="history">History</a>
+  <a href="#" data-screen="settings">Settings</a>
+</nav>
+
+<script>
+const SUPABASE_URL = 'https://hikedhwzdqnygcoinlwd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpa2VkaHd6ZHFueWdjb2lubHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzI2NTksImV4cCI6MjEwMDQwODY1OX0.25n_LamrcB6Bob5zzR4BuZBpKFpFVrU6SuxhEFP0F4E';
+
+// ---------- tiny auth/session helpers (fetch-based, no SDK) ----------
+function getSession() { try { return JSON.parse(localStorage.getItem('itikaf_session') || 'null'); } catch { return null; } }
+function setSession(s) { localStorage.setItem('itikaf_session', JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem('itikaf_session'); }
+
+async function authRequest(path, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.msg || data.error_description || 'Authentication failed');
+  return data;
+}
+
+async function signUp(email, password) {
+  const data = await authRequest('signup', { email, password });
+  if (data.access_token) setSession(data);
+  return data;
+}
+async function signIn(email, password) {
+  const data = await authRequest('token?grant_type=password', { email, password });
+  setSession(data);
+  return data;
+}
+function signOut() { clearSession(); showScreen('auth'); document.getElementById('nav').style.display = 'none'; }
+
+// ---------- client-side encryption (per-device key, never uploaded) ----------
+async function getDeviceKey() {
+  let raw = localStorage.getItem('itikaf_key');
+  if (!raw) {
+    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    const exported = await crypto.subtle.exportKey('raw', key);
+    raw = btoa(String.fromCharCode(...new Uint8Array(exported)));
+    localStorage.setItem('itikaf_key', raw);
+  }
+  const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+  return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+async function encryptText(plain) {
+  const key = await getDeviceKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder().encode(plain);
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc);
+  return { iv: btoa(String.fromCharCode(...iv)), data: btoa(String.fromCharCode(...new Uint8Array(cipher))) };
+}
+async function decryptText(payload) {
+  const key = await getDeviceKey();
+  const iv = Uint8Array.from(atob(payload.iv), (c) => c.charCodeAt(0));
+  const data = Uint8Array.from(atob(payload.data), (c) => c.charCodeAt(0));
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+  return new TextDecoder().decode(plain);
+}
+
+// ---------- screens ----------
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelectorAll('nav a').forEach((a) => a.classList.toggle('active', a.dataset.screen === name));
+}
+document.getElementById('nav').addEventListener('click', (e) => {
+  const a = e.target.closest('a[data-screen]');
+  if (!a) return;
+  e.preventDefault();
+  showScreen(a.dataset.screen);
+  if (a.dataset.screen === 'history') loadHistory();
+});
+
+document.getElementById('signInBtn').onclick = async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  try {
+    await signIn(email, password);
+    afterAuth();
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+};
+document.getElementById('signUpBtn').onclick = async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  try {
+    await signUp(email, password);
+    afterAuth();
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+};
+document.getElementById('signOutBtn').onclick = signOut;
+
+function afterAuth() {
+  const s = getSession();
+  document.getElementById('settingsEmail').textContent = s?.user?.email || '';
+  document.getElementById('nav').style.display = 'flex';
+  showScreen('journal');
+}
+
+// ---------- recording ----------
+let mediaRecorder, chunks = [];
+const recordBtn = document.getElementById('recordBtn');
+const recordStatus = document.getElementById('recordStatus');
+
+recordBtn.addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      recordBtn.classList.remove('recording');
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      handleRecording(blob);
+    };
+    mediaRecorder.start();
+    recordBtn.classList.add('recording');
+    recordStatus.textContent = 'Recording — tap again to finish';
+  } catch (e) {
+    recordStatus.textContent = 'Microphone access is needed to journal by voice.';
+  }
+});
+
+async function handleRecording(blob) {
+  const resultEl = document.getElementById('journalResult');
+  recordStatus.textContent = 'Transcribing...';
+  resultEl.innerHTML = '';
+  const session = getSession();
+  try {
+    const transcribeRes = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'audio/webm' },
+      body: blob,
+    });
+    const { transcript, language } = await transcribeRes.json();
+    if (!transcript) throw new Error('Could not transcribe that recording. Please try again.');
+
+    recordStatus.textContent = 'Reflecting...';
+    const analyzeRes = await fetch(`${SUPABASE_URL}/functions/v1/analyze-entry`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, language }),
+    });
+    const analysis = await analyzeRes.json();
+
+    if (analysis.crisis_flag) {
+      renderCrisis(resultEl);
+    } else {
+      renderResult(resultEl, analysis);
+    }
+
+    // The analyze-entry function already inserted this row (with theme_tags/crisis_flag it derived,
+    // which the client is not allowed to write). We only ever fill in our own encrypted transcript.
+    const encrypted = await encryptText(transcript);
+    await fetch(`${SUPABASE_URL}/rest/v1/journal_entries?id=eq.${analysis.entry_id}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ encrypted_transcript: encrypted }),
+    });
+
+    recordStatus.textContent = 'Tap to start a new reflection';
+  } catch (e) {
+    recordStatus.textContent = e.message || 'Something went wrong. Please try again.';
+  }
+}
+
+function renderResult(el, a) {
+  el.innerHTML = `
+    <div class="card">
+      <p class="translation">${a.reflection || ''}</p>
+    </div>
+    ${a.content ? `<div class="card">
+      <div class="arabic">${a.content.arabic_text || ''}</div>
+      <div class="translation">${a.content.translation || ''}</div>
+      <div class="source">${a.content.source || ''}</div>
+    </div>` : ''}
+    ${a.istighfar ? `<div class="card">
+      <span class="tag">Sunnah</span>
+      <div class="arabic">${a.istighfar.arabic_text || ''}</div>
+      <div class="translation">${a.istighfar.translation || ''}</div>
+      <div class="source">${a.istighfar.source || ''}</div>
+    </div>` : ''}
+  `;
+}
+
+function renderCrisis(el) {
+  el.innerHTML = `
+    <div class="card crisis-card">
+      <p class="translation">It sounds like you're carrying something heavy right now. This app can't
+      give you the help you deserve here — please reach out to someone who can.</p>
+      <p class="translation"><strong>988 Suicide &amp; Crisis Lifeline</strong> — call or text 988, available 24/7 in the US.</p>
+      <p class="translation">Consider also speaking with a trusted imam, counselor, or the
+      <a class="link" href="https://naaims.org/" target="_blank" rel="noopener">National Association of Muslim Chaplains</a> for Islamically-informed support.</p>
+      <p class="hint">This app offers reflection, not a substitute for a scholar or a mental health professional.</p>
+    </div>
+  `;
+}
+
+// ---------- history ----------
+async function loadHistory() {
+  const session = getSession();
+  const listEl = document.getElementById('historyList');
+  listEl.innerHTML = '<p class="hint">Loading...</p>';
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/journal_entries?select=id,encrypted_transcript,language_detected,created_at&order=created_at.desc`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
+  });
+  const rows = await res.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    listEl.innerHTML = '<p class="hint">Nothing yet — your first reflection will show up here.</p>';
+    return;
+  }
+  listEl.innerHTML = '';
+  for (const row of rows) {
+    let text = '(unable to decrypt on this device)';
+    try { text = await decryptText(row.encrypted_transcript); } catch {}
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = `<p class="source">${new Date(row.created_at).toLocaleString()} · ${row.language_detected || ''}</p>
+      <p class="translation">${text}</p>`;
+    listEl.appendChild(div);
+  }
+}
+
+// ---------- boot ----------
+(function boot() {
+  if (getSession()?.access_token) afterAuth();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
