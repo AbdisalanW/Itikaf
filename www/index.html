@@ -201,10 +201,27 @@
     <p class="translation">Signed in as <span id="settingsEmail"></span></p>
     <button class="secondary" id="signOutBtn">Sign out</button>
   </div>
+  <div class="card" id="planCard">
+    <p class="translation" id="planStatus">Checking your plan...</p>
+    <div id="planActions"></div>
+  </div>
   <p class="hint">
     We never sell or share your data with third parties. Raw audio is only ever kept on this
     device, never uploaded. Read the full <a class="link" href="privacy.html">privacy policy</a>.
   </p>
+</div>
+
+<!-- PAYWALL -->
+<div class="screen" id="screen-paywall">
+  <div class="back-row" id="paywallBack"><span class="arrow">&#8249;</span><span class="label">Entries</span></div>
+  <h1>Go unlimited</h1>
+  <p class="sub" id="paywallSub">You've used your free reflections for this month.</p>
+  <p class="hint" style="margin-bottom:20px;">Crisis support is never limited — if you're going through
+  something serious, keep talking to Itikaf regardless of your plan.</p>
+  <div id="paywallPackages"><p class="hint">Loading plans...</p></div>
+  <div style="height:10px"></div>
+  <button class="secondary" id="restoreBtn">Restore purchases</button>
+  <p class="status" id="paywallStatus"></p>
 </div>
 
 <nav id="nav" style="display:none;">
@@ -212,8 +229,15 @@
   <a href="#" data-screen="settings">Settings</a>
 </nav>
 
+<script src="vendor/purchases-bundle.js"></script>
+
 <script>
 const SUPABASE_URL = 'https://hikedhwzdqnygcoinlwd.supabase.co';
+// TODO: replace once the RevenueCat account + app are set up (see project notes).
+// Safe to leave as a placeholder in the meantime — check-entitlement/analyze-entry
+// enforce the free-tier limit from our own DB regardless of whether RevenueCat is
+// configured; this key only gates the actual "Subscribe" purchase flow.
+const REVENUECAT_PUBLIC_IOS_KEY = 'REPLACE_WITH_REVENUECAT_PUBLIC_SDK_KEY';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpa2VkaHd6ZHFueWdjb2lubHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzI2NTksImV4cCI6MjEwMDQwODY1OX0.25n_LamrcB6Bob5zzR4BuZBpKFpFVrU6SuxhEFP0F4E';
 
 // ---------- tiny auth/session helpers (fetch-based, no SDK) ----------
@@ -314,6 +338,7 @@ document.getElementById('nav').addEventListener('click', (e) => {
   e.preventDefault();
   showScreen(a.dataset.screen);
   if (a.dataset.screen === 'entries') loadEntries();
+  if (a.dataset.screen === 'settings') loadPlanStatus();
 });
 document.getElementById('composeBtn').onclick = () => openCompose();
 document.getElementById('composeBack').onclick = () => { showScreen('entries'); loadEntries(); };
@@ -351,6 +376,7 @@ function afterAuth() {
   const s = getSession();
   document.getElementById('settingsEmail').textContent = s?.user?.email || '';
   document.getElementById('nav').style.display = 'flex';
+  initPurchases(s.user.id);
   showScreen('entries');
   loadEntries();
 }
@@ -377,6 +403,115 @@ function setComposeMode(mode) {
 }
 document.getElementById('modeVoiceBtn').onclick = () => setComposeMode('voice');
 document.getElementById('modeTypeBtn').onclick = () => setComposeMode('type');
+
+// ---------- freemium entitlement ----------
+async function checkEntitlement() {
+  const session = getSession();
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/check-entitlement`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
+  });
+  return res.json();
+}
+// Deliberately NOT gating recording/typing on this check: check-entitlement
+// has no way to know an entry is a crisis before it's submitted, so blocking
+// here would silently prevent a genuine crisis from an over-limit user from
+// ever reaching analyze-entry's crisis-aware check. The only enforcement
+// point is analyze-entry's post-classification limit_reached response
+// (see submitEntry) — this function is used solely for the Settings screen's
+// informational plan status, which has no such safety concern.
+
+function openPaywall(entitlement) {
+  document.getElementById('paywallSub').textContent = entitlement?.is_premium
+    ? "You've used your free reflections for this month."
+    : `You've used all ${entitlement?.limit ?? 5} free reflections this month.`;
+  document.getElementById('paywallStatus').textContent = '';
+  loadPaywallPackages();
+  showScreen('paywall');
+}
+document.getElementById('paywallBack').onclick = () => { showScreen('entries'); loadEntries(); };
+
+async function loadPaywallPackages() {
+  const el = document.getElementById('paywallPackages');
+  const Purchases = window.ItikafPurchases;
+  if (!Purchases) { el.innerHTML = '<p class="hint">Subscriptions aren\'t available right now.</p>'; return; }
+  try {
+    const { offerings } = await Purchases.getOfferings();
+    const packages = offerings?.current?.availablePackages || [];
+    if (packages.length === 0) {
+      el.innerHTML = '<p class="hint">No plans available right now — please try again shortly.</p>';
+      return;
+    }
+    el.innerHTML = '';
+    for (const pkg of packages) {
+      const btn = document.createElement('button');
+      btn.style.marginBottom = '10px';
+      btn.textContent = `${pkg.product?.title || 'Subscribe'} — ${pkg.product?.priceString || ''}`;
+      btn.onclick = () => purchasePackage(pkg);
+      el.appendChild(btn);
+    }
+  } catch (e) {
+    el.innerHTML = '<p class="hint">Could not load plans. Please try again shortly.</p>';
+  }
+}
+
+async function purchasePackage(pkg) {
+  const statusEl = document.getElementById('paywallStatus');
+  const Purchases = window.ItikafPurchases;
+  statusEl.textContent = 'Processing...';
+  try {
+    await Purchases.purchasePackage({
+      packageIdentifier: pkg.identifier,
+      offeringIdentifier: pkg.offeringIdentifier,
+    });
+    statusEl.textContent = 'Subscribed — jazakallahu khayran for your support!';
+    setTimeout(() => { showScreen('entries'); loadEntries(); }, 1200);
+  } catch (e) {
+    statusEl.textContent = e?.message || 'Purchase did not complete.';
+  }
+}
+document.getElementById('restoreBtn').onclick = async () => {
+  const statusEl = document.getElementById('paywallStatus');
+  const Purchases = window.ItikafPurchases;
+  statusEl.textContent = 'Restoring...';
+  try {
+    await Purchases.restorePurchases();
+    statusEl.textContent = 'Purchases restored.';
+  } catch (e) {
+    statusEl.textContent = e?.message || 'Could not restore purchases.';
+  }
+};
+
+async function initPurchases(userId) {
+  const Purchases = window.ItikafPurchases;
+  if (!Purchases || REVENUECAT_PUBLIC_IOS_KEY.startsWith('REPLACE_WITH_')) return;
+  try {
+    await Purchases.configure({ apiKey: REVENUECAT_PUBLIC_IOS_KEY, appUserID: userId });
+  } catch (e) {
+    console.warn('RevenueCat configure failed:', e);
+  }
+}
+
+async function loadPlanStatus() {
+  const statusEl = document.getElementById('planStatus');
+  const actionsEl = document.getElementById('planActions');
+  statusEl.textContent = 'Checking your plan...';
+  actionsEl.innerHTML = '';
+  try {
+    const entitlement = await checkEntitlement();
+    if (entitlement.is_premium) {
+      statusEl.textContent = 'Premium — unlimited reflections. Jazakallahu khayran!';
+    } else {
+      statusEl.textContent = `Free plan — ${entitlement.used} of ${entitlement.limit} reflections used this month.`;
+      const btn = document.createElement('button');
+      btn.className = 'secondary';
+      btn.textContent = 'Upgrade';
+      btn.onclick = () => openPaywall(entitlement);
+      actionsEl.appendChild(btn);
+    }
+  } catch {
+    statusEl.textContent = 'Could not check your plan right now.';
+  }
+}
 
 // ---------- recording (voice mode) ----------
 let mediaRecorder, chunks = [];
@@ -455,6 +590,15 @@ async function submitEntry(transcript, language, entryType, resultEl) {
     body: JSON.stringify({ transcript, language, entry_type: entryType }),
   });
   const analysis = await analyzeRes.json();
+
+  // Defense-in-depth: our own client-side pre-check said this was allowed,
+  // but analyze-entry is the real authority and may disagree (e.g. limit hit
+  // in another session moments ago). It only ever returns this for non-crisis
+  // entries — a genuine crisis is always processed regardless of plan.
+  if (analysis.limit_reached) {
+    openPaywall(analysis);
+    return null;
+  }
 
   if (analysis.crisis_flag) {
     renderCrisis(resultEl);

@@ -18,14 +18,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Build vendor bundle (RevenueCat plugin glue code)
+        run: npm run build:vendor
+
       - name: Copy web files to www
         run: |
-          mkdir -p www
+          mkdir -p www/vendor
           cp index.html www/index.html
           cp manifest.json www/manifest.json
           cp sw.js www/sw.js
           cp privacy.html www/privacy.html
           cp -r icons www/icons
+          cp vendor/purchases-bundle.js www/vendor/
 
       - name: Sync Capacitor iOS
         run: npx cap sync ios

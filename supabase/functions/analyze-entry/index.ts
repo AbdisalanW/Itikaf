@@ -6,6 +6,7 @@
 // the client is never granted UPDATE on those columns (see migrations), so a
 // compromised client can't spoof a "safe" classification.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { getEntitlement } from "../_shared/entitlement.ts";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -156,6 +157,21 @@ Deno.serve(async (req) => {
     }
   }
   const themeTags = (parsed.theme_tags || []).filter((t) => THEME_TAXONOMY.includes(t));
+
+  // Authoritative enforcement point for the freemium limit — checked AFTER
+  // crisis classification, and only enforced when this is NOT a crisis.
+  // Blocking a genuine crisis behind a paywall would be actively harmful, so
+  // the cost of classifying an over-limit user's entry is accepted as the
+  // price of never doing that. (check-entitlement is the client-side
+  // pre-check that saves this cost in the common, non-crisis case.)
+  if (!parsed.crisis_flag) {
+    const entitlement = await getEntitlement(SUPABASE_URL, SERVICE_ROLE_KEY, user.id);
+    if (!entitlement.allowed) {
+      return new Response(JSON.stringify({ limit_reached: true, ...entitlement }), {
+        status: 402, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+  }
 
   let content = null;
   let istighfar = null;
