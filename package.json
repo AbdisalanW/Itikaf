@@ -5,7 +5,7 @@
   "description": "Itikaf — audio-journal a dilemma, get a matched dua/verse and a sunnah istighfar.",
   "scripts": {
     "build:vendor": "esbuild scripts/purchases-entry.js --bundle --format=iife --outfile=vendor/purchases-bundle.js",
-    "sync": "npm run build:vendor && mkdir -p www/vendor && cp index.html sw.js manifest.json privacy.html www/ && cp vendor/purchases-bundle.js www/vendor/ && npx cap sync"
+    "sync": "npm run build:vendor && mkdir -p www/vendor www/icons && cp index.html sw.js manifest.json privacy.html www/ && cp icons/* www/icons/ && cp vendor/purchases-bundle.js www/vendor/ && npx cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",

@@ -5,18 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Itikaf</title>
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#0f1418" />
+<meta name="theme-color" content="#FBF3E7" />
 <style>
   :root {
-    --bg: #0f1418;
-    --card: #161d22;
-    --card2: #1b232a;
-    --accent: #7fb894;
-    --accent2: #5fa0a8;
-    --text: #e8ece9;
-    --muted: #8b9a93;
-    --danger: #d97066;
-    --shadow: 0 8px 24px rgba(0,0,0,0.35);
+    /* Warm, light palette — cream + terracotta + a teal secondary, evoking
+       Islamic tilework rather than a generic dark wellness-app look. */
+    --bg: #FBF3E7;
+    --card: #FFFFFF;
+    --card2: #F2E4D2;
+    --accent: #E08D4B;
+    --accent2: #C96A3B;
+    --teal: #2F7D77;
+    --teal-tint: #E1F0EE;
+    --text: #3B2E22;
+    --muted: #9C8872;
+    --danger: #C1503B;
+    --danger-tint: #FBEAE6;
+    --btn-text: #2A1B10;
+    --shadow: 0 8px 24px rgba(59,46,34,0.10);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -29,7 +35,7 @@
   .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
   input, textarea {
     width: 100%; padding: 14px 16px; margin-bottom: 12px; border-radius: 16px;
-    border: 1px solid #2a343a; background: var(--card); color: var(--text); font-size: 1rem;
+    border: 1px solid #EBDAC2; background: var(--card); color: var(--text); font-size: 1rem;
     font-family: inherit;
   }
   textarea { resize: vertical; min-height: 140px; line-height: 1.5; }
@@ -37,14 +43,14 @@
   button {
     width: 100%; padding: 15px; border-radius: 999px; border: none;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #08110c; font-weight: 600; font-size: 1rem; cursor: pointer;
-    box-shadow: 0 6px 16px rgba(127,184,148,0.28);
+    color: var(--btn-text); font-weight: 600; font-size: 1rem; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(224,141,75,0.30);
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  button:active { transform: scale(0.97); box-shadow: 0 3px 8px rgba(127,184,148,0.22); }
+  button:active { transform: scale(0.97); box-shadow: 0 3px 8px rgba(224,141,75,0.24); }
   button.secondary {
-    background: var(--card2); color: var(--accent); box-shadow: none;
-    border: 1px solid #2a343a;
+    background: var(--card2); color: var(--accent2); box-shadow: none;
+    border: 1px solid #EBDAC2;
   }
   button:disabled { opacity: 0.5; }
   .error { color: var(--danger); font-size: 0.85rem; margin: -4px 0 12px; }
@@ -54,31 +60,31 @@
     box-shadow: var(--shadow);
   }
   .status { text-align: center; color: var(--muted); margin-bottom: 20px; }
-  .arabic { font-size: 1.3rem; text-align: right; direction: rtl; margin-bottom: 8px; line-height: 1.8; }
+  .arabic { font-size: 1.3rem; text-align: right; direction: rtl; margin-bottom: 8px; line-height: 1.8; color: var(--text); }
   .translation { color: var(--text); margin-bottom: 6px; }
   .source { color: var(--muted); font-size: 0.8rem; }
-  .tag { display: inline-block; background: #1e2a26; color: var(--accent); font-size: 0.75rem;
-    padding: 4px 12px; border-radius: 999px; margin-right: 6px; margin-bottom: 8px; }
-  .crisis-card { background: #241a18; border: 1px solid var(--danger); }
+  .tag { display: inline-block; background: var(--teal-tint); color: var(--teal); font-size: 0.75rem;
+    padding: 4px 12px; border-radius: 999px; margin-right: 6px; margin-bottom: 8px; font-weight: 600; }
+  .crisis-card { background: var(--danger-tint); border: 1px solid var(--danger); }
   .hint { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
-  a.link { color: var(--accent); }
+  a.link { color: var(--teal); }
 
   nav {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: rgba(22,29,34,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    background: rgba(251,243,231,0.78); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     display: flex; justify-content: space-around; padding: 12px 0 max(12px, env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid rgba(59,46,34,0.08);
   }
   nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; text-align: center; padding: 4px 18px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
-  nav a.active { color: var(--accent); background: rgba(127,184,148,0.12); }
+  nav a.active { color: var(--accent2); background: rgba(224,141,75,0.14); }
 
   /* ---- Notes-style entry list ---- */
   .entry-row {
     display: flex; gap: 12px; align-items: flex-start; padding: 14px 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer;
+    border-bottom: 1px solid rgba(59,46,34,0.08); cursor: pointer;
     transition: background 0.15s;
   }
-  .entry-row:active { background: rgba(255,255,255,0.04); border-radius: 14px; }
+  .entry-row:active { background: rgba(59,46,34,0.05); border-radius: 14px; }
   .entry-icon {
     width: 34px; height: 34px; border-radius: 999px; background: var(--card2);
     display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
@@ -95,8 +101,8 @@
     position: fixed; right: 22px; bottom: calc(84px + env(safe-area-inset-bottom));
     width: 60px; height: 60px; border-radius: 999px;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: #08110c;
-    box-shadow: 0 10px 26px rgba(127,184,148,0.4); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--btn-text);
+    box-shadow: 0 10px 26px rgba(224,141,75,0.40); border: none; cursor: pointer;
     transition: transform 0.12s ease;
   }
   .fab:active { transform: scale(0.94); }
@@ -110,22 +116,22 @@
     padding: 10px; border-radius: 999px; transition: background 0.2s, color 0.2s;
   }
   .segmented button.active {
-    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #08110c;
-    box-shadow: 0 4px 12px rgba(127,184,148,0.3);
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--btn-text);
+    box-shadow: 0 4px 12px rgba(224,141,75,0.32);
   }
 
   .record-wrap { text-align: center; margin: 50px 0 26px; }
   #recordBtn {
     width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: inline-flex; align-items: center; justify-content: center; font-size: 2rem;
-    box-shadow: 0 10px 28px rgba(127,184,148,0.35); border: none;
+    box-shadow: 0 10px 28px rgba(224,141,75,0.38); border: none;
   }
-  #recordBtn.recording { background: linear-gradient(135deg, var(--danger), #b85a52); animation: pulse 1.4s infinite; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(217,112,102,0.5);} 100% { box-shadow: 0 0 0 24px rgba(217,112,102,0);} }
+  #recordBtn.recording { background: linear-gradient(135deg, var(--danger), #A23F2E); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(193,80,59,0.45);} 100% { box-shadow: 0 0 0 24px rgba(193,80,59,0);} }
 
   .back-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; cursor: pointer; }
-  .back-row span.arrow { color: var(--accent); font-size: 1.2rem; }
-  .back-row span.label { color: var(--accent); font-weight: 600; }
+  .back-row span.arrow { color: var(--accent2); font-size: 1.2rem; }
+  .back-row span.label { color: var(--accent2); font-weight: 600; }
 
   audio { width: 100%; border-radius: 999px; }
   .empty-state { text-align: center; color: var(--muted); padding: 60px 20px; }

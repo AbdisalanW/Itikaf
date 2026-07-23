@@ -4,8 +4,8 @@
   "description": "Speak your dilemma. Find a dua for it.",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#0f1418",
-  "theme_color": "#0f1418",
+  "background_color": "#FBF3E7",
+  "theme_color": "#FBF3E7",
   "orientation": "portrait",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },

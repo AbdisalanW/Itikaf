@@ -55,6 +55,6 @@ function makePng(size, [r, g, b], outPath) {
 
 const size = parseInt(process.argv[2], 10);
 const outPath = process.argv[3];
-// Itikaf brand green (--accent from index.html)
-makePng(size, [0x7f, 0xb8, 0x94], outPath);
+// Itikaf brand terracotta (--accent from index.html)
+makePng(size, [0xe0, 0x8d, 0x4b], outPath);
 console.log(`wrote ${outPath}`);
