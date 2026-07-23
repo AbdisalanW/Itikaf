@@ -10,54 +10,125 @@
   :root {
     --bg: #0f1418;
     --card: #161d22;
+    --card2: #1b232a;
     --accent: #7fb894;
+    --accent2: #5fa0a8;
     --text: #e8ece9;
     --muted: #8b9a93;
     --danger: #d97066;
+    --shadow: 0 8px 24px rgba(0,0,0,0.35);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg); color: var(--text); min-height: 100vh;
   }
-  .screen { display: none; padding: 24px 20px 100px; max-width: 480px; margin: 0 auto; }
+  .screen { display: none; padding: 24px 20px 110px; max-width: 480px; margin: 0 auto; }
   .screen.active { display: block; }
   h1 { font-size: 1.4rem; margin-bottom: 4px; }
   .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
-  input {
-    width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 10px;
+  input, textarea {
+    width: 100%; padding: 14px 16px; margin-bottom: 12px; border-radius: 16px;
     border: 1px solid #2a343a; background: var(--card); color: var(--text); font-size: 1rem;
+    font-family: inherit;
   }
+  textarea { resize: vertical; min-height: 140px; line-height: 1.5; }
+
   button {
-    width: 100%; padding: 14px; border-radius: 10px; border: none;
-    background: var(--accent); color: #08110c; font-weight: 600; font-size: 1rem; cursor: pointer;
+    width: 100%; padding: 15px; border-radius: 999px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #08110c; font-weight: 600; font-size: 1rem; cursor: pointer;
+    box-shadow: 0 6px 16px rgba(127,184,148,0.28);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button:active { transform: scale(0.97); box-shadow: 0 3px 8px rgba(127,184,148,0.22); }
+  button.secondary {
+    background: var(--card2); color: var(--accent); box-shadow: none;
+    border: 1px solid #2a343a;
+  }
   button:disabled { opacity: 0.5; }
   .error { color: var(--danger); font-size: 0.85rem; margin: -4px 0 12px; }
+
   .card {
-    background: var(--card); border-radius: 14px; padding: 18px; margin-bottom: 14px;
+    background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 14px;
+    box-shadow: var(--shadow);
   }
-  .record-wrap { text-align: center; margin: 60px 0 30px; }
-  #recordBtn {
-    width: 96px; height: 96px; border-radius: 50%; background: var(--accent);
-    display: inline-flex; align-items: center; justify-content: center; font-size: 2rem;
-  }
-  #recordBtn.recording { background: var(--danger); animation: pulse 1.4s infinite; }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(217,112,102,0.5);} 100% { box-shadow: 0 0 0 24px rgba(217,112,102,0);} }
   .status { text-align: center; color: var(--muted); margin-bottom: 20px; }
   .arabic { font-size: 1.3rem; text-align: right; direction: rtl; margin-bottom: 8px; line-height: 1.8; }
   .translation { color: var(--text); margin-bottom: 6px; }
   .source { color: var(--muted); font-size: 0.8rem; }
   .tag { display: inline-block; background: #1e2a26; color: var(--accent); font-size: 0.75rem;
-    padding: 3px 10px; border-radius: 20px; margin-right: 6px; }
+    padding: 4px 12px; border-radius: 999px; margin-right: 6px; margin-bottom: 8px; }
   .crisis-card { background: #241a18; border: 1px solid var(--danger); }
-  nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
-    display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #2a343a; }
-  nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; text-align: center; }
-  nav a.active { color: var(--accent); }
   .hint { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
   a.link { color: var(--accent); }
+
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(22,29,34,0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    display: flex; justify-content: space-around; padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; text-align: center; padding: 4px 18px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
+  nav a.active { color: var(--accent); background: rgba(127,184,148,0.12); }
+
+  /* ---- Notes-style entry list ---- */
+  .entry-row {
+    display: flex; gap: 12px; align-items: flex-start; padding: 14px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer;
+    transition: background 0.15s;
+  }
+  .entry-row:active { background: rgba(255,255,255,0.04); border-radius: 14px; }
+  .entry-icon {
+    width: 34px; height: 34px; border-radius: 999px; background: var(--card2);
+    display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;
+  }
+  .entry-body { flex: 1; min-width: 0; }
+  .entry-date { font-size: 0.75rem; color: var(--muted); margin-bottom: 3px; }
+  .entry-snippet {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; color: var(--text); font-size: 0.95rem; line-height: 1.35;
+  }
+
+  /* ---- Floating compose button ---- */
+  .fab {
+    position: fixed; right: 22px; bottom: calc(84px + env(safe-area-inset-bottom));
+    width: 60px; height: 60px; border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: #08110c;
+    box-shadow: 0 10px 26px rgba(127,184,148,0.4); border: none; cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .fab:active { transform: scale(0.94); }
+
+  /* ---- Segmented voice/type toggle ---- */
+  .segmented {
+    display: flex; background: var(--card2); border-radius: 999px; padding: 4px; margin-bottom: 20px;
+  }
+  .segmented button {
+    flex: 1; background: transparent; box-shadow: none; color: var(--muted); font-weight: 600;
+    padding: 10px; border-radius: 999px; transition: background 0.2s, color 0.2s;
+  }
+  .segmented button.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #08110c;
+    box-shadow: 0 4px 12px rgba(127,184,148,0.3);
+  }
+
+  .record-wrap { text-align: center; margin: 50px 0 26px; }
+  #recordBtn {
+    width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: inline-flex; align-items: center; justify-content: center; font-size: 2rem;
+    box-shadow: 0 10px 28px rgba(127,184,148,0.35); border: none;
+  }
+  #recordBtn.recording { background: linear-gradient(135deg, var(--danger), #b85a52); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(217,112,102,0.5);} 100% { box-shadow: 0 0 0 24px rgba(217,112,102,0);} }
+
+  .back-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; cursor: pointer; }
+  .back-row span.arrow { color: var(--accent); font-size: 1.2rem; }
+  .back-row span.label { color: var(--accent); font-weight: 600; }
+
+  audio { width: 100%; border-radius: 999px; }
+  .empty-state { text-align: center; color: var(--muted); padding: 60px 20px; }
 </style>
 </head>
 <body>
@@ -77,22 +148,50 @@
   <p class="hint">Your journal is encrypted on your device before it's ever stored. See our <a class="link" href="privacy.html">privacy policy</a>.</p>
 </div>
 
-<!-- JOURNAL (record) -->
-<div class="screen" id="screen-journal">
-  <h1>Speak freely</h1>
-  <p class="sub">Talk in whatever language feels natural. We'll listen and respond.</p>
-  <div class="record-wrap">
-    <button id="recordBtn">&#127908;</button>
-  </div>
-  <p class="status" id="recordStatus">Tap to start recording</p>
-  <div id="journalResult"></div>
+<!-- ENTRIES (Notes-style list) -->
+<div class="screen" id="screen-entries">
+  <h1>Itikaf</h1>
+  <p class="sub">Your private reflections — tap one to reopen it.</p>
+  <div id="entriesList"></div>
+  <button class="fab" id="composeBtn" aria-label="New entry">&#9998;</button>
 </div>
 
-<!-- HISTORY -->
-<div class="screen" id="screen-history">
-  <h1>Your reflections</h1>
-  <p class="sub">Only visible on this device — transcripts are encrypted at rest.</p>
-  <div id="historyList"></div>
+<!-- COMPOSE (voice or type) -->
+<div class="screen" id="screen-compose">
+  <div class="back-row" id="composeBack"><span class="arrow">&#8249;</span><span class="label">Entries</span></div>
+  <h1>New reflection</h1>
+  <p class="sub" id="composeSub">Talk in whatever language feels natural. We'll listen and respond.</p>
+
+  <div class="segmented">
+    <button class="active" id="modeVoiceBtn">Voice</button>
+    <button id="modeTypeBtn">Type</button>
+  </div>
+
+  <div id="voiceMode">
+    <div class="record-wrap">
+      <button id="recordBtn">&#127908;</button>
+    </div>
+    <p class="status" id="recordStatus">Tap to start recording</p>
+  </div>
+
+  <div id="typeMode" style="display:none;">
+    <textarea id="typeInput" placeholder="Write about what's on your mind..."></textarea>
+    <button id="typeSubmitBtn">Reflect</button>
+    <p class="status" id="typeStatus"></p>
+  </div>
+
+  <div id="composeResult"></div>
+</div>
+
+<!-- DETAIL (reopen a past entry) -->
+<div class="screen" id="screen-detail">
+  <div class="back-row" id="detailBack"><span class="arrow">&#8249;</span><span class="label">Entries</span></div>
+  <p class="source" id="detailDate"></p>
+  <div class="card">
+    <p class="translation" id="detailTranscript"></p>
+  </div>
+  <div id="detailAudio"></div>
+  <div id="detailResult"></div>
 </div>
 
 <!-- SETTINGS -->
@@ -103,14 +202,13 @@
     <button class="secondary" id="signOutBtn">Sign out</button>
   </div>
   <p class="hint">
-    We never sell or share your data with third parties. Raw audio is deleted immediately
-    after transcription. Read the full <a class="link" href="privacy.html">privacy policy</a>.
+    We never sell or share your data with third parties. Raw audio is only ever kept on this
+    device, never uploaded. Read the full <a class="link" href="privacy.html">privacy policy</a>.
   </p>
 </div>
 
 <nav id="nav" style="display:none;">
-  <a href="#" data-screen="journal">Journal</a>
-  <a href="#" data-screen="history">History</a>
+  <a href="#" data-screen="entries">Entries</a>
   <a href="#" data-screen="settings">Settings</a>
 </nav>
 
@@ -173,7 +271,38 @@ async function decryptText(payload) {
   return new TextDecoder().decode(plain);
 }
 
+// ---------- on-device audio storage (IndexedDB, never uploaded) ----------
+function openAudioDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('itikaf-audio', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('recordings');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function saveAudioBlob(entryId, blob) {
+  const db = await openAudioDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('recordings', 'readwrite');
+    tx.objectStore('recordings').put(blob, entryId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getAudioBlob(entryId) {
+  const db = await openAudioDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('recordings', 'readonly');
+    const req = tx.objectStore('recordings').get(entryId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 // ---------- screens ----------
+let entriesCache = [];
+let pendingVoiceBlob = null;
+
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   document.getElementById(`screen-${name}`).classList.add('active');
@@ -184,8 +313,11 @@ document.getElementById('nav').addEventListener('click', (e) => {
   if (!a) return;
   e.preventDefault();
   showScreen(a.dataset.screen);
-  if (a.dataset.screen === 'history') loadHistory();
+  if (a.dataset.screen === 'entries') loadEntries();
 });
+document.getElementById('composeBtn').onclick = () => openCompose();
+document.getElementById('composeBack').onclick = () => { showScreen('entries'); loadEntries(); };
+document.getElementById('detailBack').onclick = () => { showScreen('entries'); loadEntries(); };
 
 document.getElementById('signInBtn').onclick = async () => {
   const email = document.getElementById('authEmail').value.trim();
@@ -219,10 +351,34 @@ function afterAuth() {
   const s = getSession();
   document.getElementById('settingsEmail').textContent = s?.user?.email || '';
   document.getElementById('nav').style.display = 'flex';
-  showScreen('journal');
+  showScreen('entries');
+  loadEntries();
 }
 
-// ---------- recording ----------
+// ---------- compose: mode toggle ----------
+function openCompose() {
+  document.getElementById('composeResult').innerHTML = '';
+  document.getElementById('typeInput').value = '';
+  document.getElementById('typeStatus').textContent = '';
+  document.getElementById('recordStatus').textContent = 'Tap to start recording';
+  pendingVoiceBlob = null;
+  setComposeMode('voice');
+  showScreen('compose');
+}
+function setComposeMode(mode) {
+  const isVoice = mode === 'voice';
+  document.getElementById('modeVoiceBtn').classList.toggle('active', isVoice);
+  document.getElementById('modeTypeBtn').classList.toggle('active', !isVoice);
+  document.getElementById('voiceMode').style.display = isVoice ? 'block' : 'none';
+  document.getElementById('typeMode').style.display = isVoice ? 'none' : 'block';
+  document.getElementById('composeSub').textContent = isVoice
+    ? "Talk in whatever language feels natural. We'll listen and respond."
+    : 'Write in whatever language feels natural.';
+}
+document.getElementById('modeVoiceBtn').onclick = () => setComposeMode('voice');
+document.getElementById('modeTypeBtn').onclick = () => setComposeMode('type');
+
+// ---------- recording (voice mode) ----------
 let mediaRecorder, chunks = [];
 const recordBtn = document.getElementById('recordBtn');
 const recordStatus = document.getElementById('recordStatus');
@@ -241,7 +397,7 @@ recordBtn.addEventListener('click', async () => {
       stream.getTracks().forEach((t) => t.stop());
       recordBtn.classList.remove('recording');
       const blob = new Blob(chunks, { type: 'audio/webm' });
-      handleRecording(blob);
+      handleVoiceEntry(blob);
     };
     mediaRecorder.start();
     recordBtn.classList.add('recording');
@@ -251,8 +407,8 @@ recordBtn.addEventListener('click', async () => {
   }
 });
 
-async function handleRecording(blob) {
-  const resultEl = document.getElementById('journalResult');
+async function handleVoiceEntry(blob) {
+  const resultEl = document.getElementById('composeResult');
   recordStatus.textContent = 'Transcribing...';
   resultEl.innerHTML = '';
   const session = getSession();
@@ -266,35 +422,60 @@ async function handleRecording(blob) {
     if (!transcript) throw new Error('Could not transcribe that recording. Please try again.');
 
     recordStatus.textContent = 'Reflecting...';
-    const analyzeRes = await fetch(`${SUPABASE_URL}/functions/v1/analyze-entry`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript, language }),
-    });
-    const analysis = await analyzeRes.json();
-
-    if (analysis.crisis_flag) {
-      renderCrisis(resultEl);
-    } else {
-      renderResult(resultEl, analysis);
-    }
-
-    // The analyze-entry function already inserted this row (with theme_tags/crisis_flag it derived,
-    // which the client is not allowed to write). We only ever fill in our own encrypted transcript.
-    const encrypted = await encryptText(transcript);
-    await fetch(`${SUPABASE_URL}/rest/v1/journal_entries?id=eq.${analysis.entry_id}`, {
-      method: 'PATCH',
-      headers: {
-        apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json', Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({ encrypted_transcript: encrypted }),
-    });
-
+    const entryId = await submitEntry(transcript, language, 'voice', resultEl);
+    if (entryId) await saveAudioBlob(entryId, blob);
     recordStatus.textContent = 'Tap to start a new reflection';
   } catch (e) {
     recordStatus.textContent = e.message || 'Something went wrong. Please try again.';
   }
+}
+
+// ---------- typed entry ----------
+document.getElementById('typeSubmitBtn').onclick = async () => {
+  const text = document.getElementById('typeInput').value.trim();
+  const statusEl = document.getElementById('typeStatus');
+  const resultEl = document.getElementById('composeResult');
+  if (!text) { statusEl.textContent = 'Write something first.'; return; }
+  statusEl.textContent = 'Reflecting...';
+  resultEl.innerHTML = '';
+  try {
+    await submitEntry(text, null, 'text', resultEl);
+    statusEl.textContent = '';
+  } catch (e) {
+    statusEl.textContent = e.message || 'Something went wrong. Please try again.';
+  }
+};
+
+// ---------- shared: send transcript to analyze-entry, store encrypted transcript ----------
+async function submitEntry(transcript, language, entryType, resultEl) {
+  const session = getSession();
+  const analyzeRes = await fetch(`${SUPABASE_URL}/functions/v1/analyze-entry`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transcript, language, entry_type: entryType }),
+  });
+  const analysis = await analyzeRes.json();
+
+  if (analysis.crisis_flag) {
+    renderCrisis(resultEl);
+  } else {
+    renderResult(resultEl, analysis);
+  }
+
+  // The analyze-entry function already inserted this row (with theme_tags/crisis_flag/
+  // reflection/content_item_id/istighfar_item_id it derived, which the client is not
+  // allowed to write). We only ever fill in our own encrypted transcript.
+  const encrypted = await encryptText(transcript);
+  await fetch(`${SUPABASE_URL}/rest/v1/journal_entries?id=eq.${analysis.entry_id}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ encrypted_transcript: encrypted }),
+  });
+
+  return analysis.entry_id;
 }
 
 function renderResult(el, a) {
@@ -329,29 +510,75 @@ function renderCrisis(el) {
   `;
 }
 
-// ---------- history ----------
-async function loadHistory() {
+// ---------- entries list (Notes-style) ----------
+async function loadEntries() {
   const session = getSession();
-  const listEl = document.getElementById('historyList');
+  const listEl = document.getElementById('entriesList');
   listEl.innerHTML = '<p class="hint">Loading...</p>';
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/journal_entries?select=id,encrypted_transcript,language_detected,created_at&order=created_at.desc`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
-  });
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/journal_entries?select=id,encrypted_transcript,language_detected,created_at,entry_type,reflection,crisis_flag,` +
+    `content:content_item_id(arabic_text,translation,source,type),istighfar:istighfar_item_id(arabic_text,translation,source)` +
+    `&order=created_at.desc`,
+    { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` } },
+  );
   const rows = await res.json();
   if (!Array.isArray(rows) || rows.length === 0) {
-    listEl.innerHTML = '<p class="hint">Nothing yet — your first reflection will show up here.</p>';
+    entriesCache = [];
+    listEl.innerHTML = '<div class="empty-state">Nothing yet — tap the pencil to start your first reflection.</div>';
     return;
   }
+  entriesCache = rows;
   listEl.innerHTML = '';
   for (const row of rows) {
     let text = '(unable to decrypt on this device)';
     try { text = await decryptText(row.encrypted_transcript); } catch {}
+    row._decrypted = text;
     const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = `<p class="source">${new Date(row.created_at).toLocaleString()} · ${row.language_detected || ''}</p>
-      <p class="translation">${text}</p>`;
+    div.className = 'entry-row';
+    div.innerHTML = `
+      <div class="entry-icon">${row.entry_type === 'text' ? '&#9000;' : '&#127908;'}</div>
+      <div class="entry-body">
+        <div class="entry-date">${new Date(row.created_at).toLocaleString()}</div>
+        <div class="entry-snippet">${text}</div>
+      </div>`;
+    div.onclick = () => openDetail(row.id);
     listEl.appendChild(div);
   }
+}
+
+async function openDetail(id) {
+  const row = entriesCache.find((r) => r.id === id);
+  if (!row) return;
+  document.getElementById('detailDate').textContent =
+    `${new Date(row.created_at).toLocaleString()} · ${row.entry_type === 'text' ? 'Typed' : 'Voice'}`;
+  document.getElementById('detailTranscript').textContent = row._decrypted;
+
+  const resultEl = document.getElementById('detailResult');
+  if (row.crisis_flag) {
+    renderCrisis(resultEl);
+  } else if (row.reflection) {
+    renderResult(resultEl, { reflection: row.reflection, content: row.content, istighfar: row.istighfar });
+  } else {
+    resultEl.innerHTML = '';
+  }
+
+  const audioEl = document.getElementById('detailAudio');
+  audioEl.innerHTML = '';
+  if (row.entry_type === 'voice') {
+    try {
+      const blob = await getAudioBlob(row.id);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        audioEl.innerHTML = `<div class="card"><audio controls src="${url}"></audio></div>`;
+      } else {
+        audioEl.innerHTML = '<p class="hint">Recording not available on this device.</p>';
+      }
+    } catch {
+      audioEl.innerHTML = '<p class="hint">Recording not available on this device.</p>';
+    }
+  }
+
+  showScreen('detail');
 }
 
 // ---------- boot ----------

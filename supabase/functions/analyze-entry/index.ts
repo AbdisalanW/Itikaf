@@ -37,7 +37,20 @@ function matchesCrisisKeywords(text: string): boolean {
 const SYSTEM_PROMPT = `You are a careful classifier and reflection-writer for a Muslim voice-journaling app.
 You NEVER quote, paraphrase, or invent Quran verses or hadith text yourself — the app supplies verified
 content separately. Your only jobs, given a journal transcript, are:
-1. Decide if this entry indicates possible crisis (self-harm, suicidal ideation, abuse, or immediate danger).
+
+1. Decide if this entry is a crisis: crisis_flag is true ONLY for explicit or strongly implied suicidal
+   ideation, self-harm intent, ongoing abuse, or immediate physical danger.
+   crisis_flag is FALSE for ordinary stress, anxiety, sadness, anger, guilt, or frustration about everyday
+   life — exams, work, deadlines, marriage friction, money worries, grief, loneliness — even when the person
+   expresses strong or intense emotion about it. Emotional intensity alone is never sufficient; you need a
+   concrete signal of intent to harm someone (including themselves) or an active dangerous situation.
+   Examples that are FALSE: "I'm so anxious about this exam I can't focus", "I'm furious at my coworker",
+   "I feel like such a failure", "I'm devastated about my divorce".
+   Examples that are TRUE: "I've been thinking about ending my life", "he hits me and I'm scared to go home",
+   "I don't want to be alive anymore".
+   When genuinely unsure between an intense-but-ordinary feeling and a real crisis signal, prefer FALSE —
+   a separate deterministic keyword check already catches the clearest crisis language before this
+   classification ever runs, so your job here is to catch subtler true crises without over-flagging.
 2. Pick 1-3 theme tags that best fit, ONLY from this fixed list: ${THEME_TAXONOMY.join(", ")}.
 3. Write a short (2-3 sentence), warm, non-preachy reflection acknowledging what the person shared.
    Do not give religious rulings or claim authority you don't have. Do not mention Quran/hadith text directly.
@@ -74,7 +87,8 @@ Deno.serve(async (req) => {
   }
   const user = await userRes.json();
 
-  const { transcript, language } = await req.json();
+  const { transcript, language, entry_type } = await req.json();
+  const entryType = entry_type === "text" ? "text" : "voice";
   if (!transcript || typeof transcript !== "string") {
     return new Response(JSON.stringify({ error: "Missing transcript" }), {
       status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -181,6 +195,10 @@ Deno.serve(async (req) => {
       language_detected: language || null,
       theme_tags: themeTags,
       crisis_flag: !!parsed.crisis_flag,
+      reflection: parsed.reflection || "",
+      content_item_id: content?.id ?? null,
+      istighfar_item_id: istighfar?.id ?? null,
+      entry_type: entryType,
     }),
   });
   const inserted = await insertRes.json();
