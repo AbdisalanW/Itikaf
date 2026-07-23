@@ -17,6 +17,23 @@ const THEME_TAXONOMY = [
   "gratitude", "immigration-family", "financial-stress", "loneliness", "anger",
 ];
 
+// Deterministic safety net, checked BEFORE Claude's classification. Testing
+// showed Claude's crisis classification is not perfectly consistent across
+// calls even on clearly suicidal input — a single probabilistic call is not
+// reliable enough as the only line of defense here. Any of these phrases
+// forces crisis_flag=true regardless of what the model would have said.
+// English-only for now; non-English or non-matching crisis language still
+// falls through to Claude's classification below.
+const CRISIS_KEYWORDS = [
+  /kill(ing)? myself/i, /end(ing)? my life/i, /suicid(e|al)/i,
+  /want(ing)? to die/i, /no (reason|point) (to|in) (liv(e|ing)|going on)/i,
+  /(hurt|harm)(ing)? myself/i, /self[- ]harm/i, /better off dead/i,
+  /don'?t want to (be here|exist) anymore/i,
+];
+function matchesCrisisKeywords(text: string): boolean {
+  return CRISIS_KEYWORDS.some((re) => re.test(text));
+}
+
 const SYSTEM_PROMPT = `You are a careful classifier and reflection-writer for a Muslim voice-journaling app.
 You NEVER quote, paraphrase, or invent Quran verses or hadith text yourself — the app supplies verified
 content separately. Your only jobs, given a journal transcript, are:
@@ -64,37 +81,65 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Plaintext transcript is used only transiently here (in memory, this call) —
-  // it is never logged or persisted; the client encrypts it before storage.
-  const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-5",
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: transcript }],
-    }),
-  });
-
-  if (!claudeRes.ok) {
-    const errText = await claudeRes.text();
-    console.error("Claude analysis failed:", errText);
-    return new Response(JSON.stringify({ error: "Could not analyze entry" }), {
-      status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
-  }
-
-  const claudeData = await claudeRes.json();
   let parsed: { crisis_flag: boolean; theme_tags: string[]; reflection: string };
-  try {
-    parsed = JSON.parse(claudeData.content[0].text);
-  } catch {
-    parsed = { crisis_flag: false, theme_tags: [], reflection: "" };
+
+  if (matchesCrisisKeywords(transcript)) {
+    // Deterministic match — skip the model call entirely. The crisis screen
+    // doesn't use theme_tags/reflection, and there's no reason to give a
+    // probabilistic classifier a chance to talk this back down.
+    parsed = { crisis_flag: true, theme_tags: [], reflection: "" };
+  } else {
+    // Plaintext transcript is used only transiently here (in memory, this call) —
+    // it is never logged or persisted; the client encrypts it before storage.
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 400,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: transcript }],
+        // Structured outputs guarantee schema-conforming JSON — more reliable
+        // than a "respond only with JSON" instruction, which can occasionally
+        // get wrapped in preamble text or omit a field.
+        output_config: {
+          format: {
+            type: "json_schema",
+            schema: {
+              type: "object",
+              properties: {
+                crisis_flag: { type: "boolean" },
+                theme_tags: { type: "array", items: { type: "string", enum: THEME_TAXONOMY } },
+                reflection: { type: "string" },
+              },
+              required: ["crisis_flag", "theme_tags", "reflection"],
+              additionalProperties: false,
+            },
+          },
+        },
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      console.error("Claude analysis failed:", errText);
+      return new Response(JSON.stringify({ error: "Could not analyze entry" }), {
+        status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+
+    const claudeData = await claudeRes.json();
+    try {
+      parsed = JSON.parse(claudeData.content[0].text);
+    } catch {
+      // Fail closed: if we can't parse the model's classification, treat it
+      // as a possible crisis rather than silently defaulting to "safe".
+      parsed = { crisis_flag: true, theme_tags: [], reflection: "" };
+    }
   }
   const themeTags = (parsed.theme_tags || []).filter((t) => THEME_TAXONOMY.includes(t));
 
@@ -111,12 +156,16 @@ Deno.serve(async (req) => {
       const contentRows = await contentRes.json();
       content = Array.isArray(contentRows) && contentRows[0] ? contentRows[0] : null;
     }
+    // PostgREST's order= param only accepts column names, not function calls
+    // like random() — fetch the small istighfar set and pick one client-side.
     const istighfarRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/content_items?type=eq.istighfar&limit=1&order=random()`,
+      `${SUPABASE_URL}/rest/v1/content_items?type=eq.istighfar`,
       { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } },
     );
     const istighfarRows = await istighfarRes.json();
-    istighfar = Array.isArray(istighfarRows) && istighfarRows[0] ? istighfarRows[0] : null;
+    istighfar = Array.isArray(istighfarRows) && istighfarRows.length > 0
+      ? istighfarRows[Math.floor(Math.random() * istighfarRows.length)]
+      : null;
   }
 
   // Insert the row now (service role) with the AI-derived fields locked in;
