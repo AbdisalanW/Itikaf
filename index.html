@@ -121,6 +121,10 @@
   }
 
   .record-wrap { text-align: center; margin: 50px 0 26px; }
+  .record-timer {
+    text-align: center; font-size: 1.6rem; font-weight: 600; color: var(--accent2);
+    font-variant-numeric: tabular-nums; margin: -10px 0 16px;
+  }
   #recordBtn {
     width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: inline-flex; align-items: center; justify-content: center; font-size: 2rem;
@@ -141,8 +145,8 @@
 
 <!-- AUTH -->
 <div class="screen active" id="screen-auth">
-  <h1>Itikaf</h1>
-  <p class="sub">A private moment to speak your dilemma and find a dua for it.</p>
+  <h1>Welcome to Itikaf</h1>
+  <p class="sub">A quiet space to speak what's on your heart — by voice or by writing.</p>
   <div class="card">
     <input type="email" id="authEmail" placeholder="Email" autocomplete="email" />
     <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" />
@@ -151,6 +155,11 @@
     <div style="height:10px"></div>
     <button class="secondary" id="signUpBtn">Create account</button>
   </div>
+  <p class="hint">
+    Share a dilemma, and Itikaf's AI will reflect with you — surfacing Quran verses, hadith, and
+    duas suited to what you're going through. Every verse and hadith comes from verified Islamic
+    sources; the AI matches and reflects, it never invents scripture.
+  </p>
   <p class="hint">Your journal is encrypted on your device before it's ever stored. See our <a class="link" href="privacy.html">privacy policy</a>.</p>
 </div>
 
@@ -177,6 +186,7 @@
     <div class="record-wrap">
       <button id="recordBtn">&#127908;</button>
     </div>
+    <p class="record-timer" id="recordTimer" style="display:none;">0:00</p>
     <p class="status" id="recordStatus">Tap to start recording</p>
   </div>
 
@@ -393,6 +403,7 @@ function openCompose() {
   document.getElementById('typeInput').value = '';
   document.getElementById('typeStatus').textContent = '';
   document.getElementById('recordStatus').textContent = 'Tap to start recording';
+  document.getElementById('recordTimer').style.display = 'none';
   pendingVoiceBlob = null;
   setComposeMode('voice');
   showScreen('compose');
@@ -521,8 +532,29 @@ async function loadPlanStatus() {
 
 // ---------- recording (voice mode) ----------
 let mediaRecorder, chunks = [];
+let recordTimerInterval = null, recordStartedAt = null;
 const recordBtn = document.getElementById('recordBtn');
 const recordStatus = document.getElementById('recordStatus');
+const recordTimerEl = document.getElementById('recordTimer');
+
+function formatDuration(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+function startRecordTimer() {
+  recordStartedAt = Date.now();
+  recordTimerEl.textContent = '0:00';
+  recordTimerEl.style.display = 'block';
+  recordTimerInterval = setInterval(() => {
+    recordTimerEl.textContent = formatDuration(Math.floor((Date.now() - recordStartedAt) / 1000));
+  }, 1000);
+}
+function stopRecordTimer() {
+  clearInterval(recordTimerInterval);
+  recordTimerInterval = null;
+  recordTimerEl.style.display = 'none';
+}
 
 recordBtn.addEventListener('click', async () => {
   if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -537,12 +569,14 @@ recordBtn.addEventListener('click', async () => {
     mediaRecorder.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       recordBtn.classList.remove('recording');
+      stopRecordTimer();
       const blob = new Blob(chunks, { type: 'audio/webm' });
       handleVoiceEntry(blob);
     };
     mediaRecorder.start();
     recordBtn.classList.add('recording');
     recordStatus.textContent = 'Recording — tap again to finish';
+    startRecordTimer();
   } catch (e) {
     recordStatus.textContent = 'Microphone access is needed to journal by voice.';
   }
