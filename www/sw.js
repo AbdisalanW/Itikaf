@@ -1,4 +1,4 @@
-const CACHE = 'itikaf-v7';
+const CACHE = 'itikaf-v8';
 const CORE_ASSETS = ['/index.html', '/manifest.json', '/privacy.html'];
 
 self.addEventListener('install', (event) => {

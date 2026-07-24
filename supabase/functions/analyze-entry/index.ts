@@ -149,10 +149,20 @@ Deno.serve(async (req) => {
 
     const claudeData = await claudeRes.json();
     try {
-      parsed = JSON.parse(claudeData.content[0].text);
-    } catch {
+      const textBlock = claudeData.content?.find((b: { type: string }) => b.type === "text");
+      if (!textBlock) throw new Error("No text block in Claude response");
+      parsed = JSON.parse(textBlock.text);
+    } catch (e) {
       // Fail closed: if we can't parse the model's classification, treat it
       // as a possible crisis rather than silently defaulting to "safe".
+      // Log response shape (never the transcript/reflection text) so a bad
+      // fallback here is diagnosable instead of silent.
+      console.error(
+        "Failed to parse Claude classification:",
+        String(e),
+        "stop_reason:", claudeData.stop_reason,
+        "content block types:", claudeData.content?.map((b: { type: string }) => b.type),
+      );
       parsed = { crisis_flag: true, theme_tags: [], reflection: "" };
     }
   }

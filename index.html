@@ -448,7 +448,7 @@ async function checkEntitlement() {
 function openPaywall(entitlement) {
   document.getElementById('paywallSub').textContent = entitlement?.is_premium
     ? "You've used your free reflections for this month."
-    : `You've used all ${entitlement?.limit ?? 5} free reflections this month.`;
+    : `You've used all ${entitlement?.limit ?? 10} free reflections this month.`;
   document.getElementById('paywallStatus').textContent = '';
   loadPaywallPackages();
   showScreen('paywall');

@@ -2,7 +2,7 @@
 // (the real, authoritative enforcement point). Crisis-flagged entries never
 // count against the limit — blocking someone mid-crisis behind a paywall
 // would be actively harmful.
-export const FREE_MONTHLY_LIMIT = 5;
+export const FREE_MONTHLY_LIMIT = 10;
 
 export async function getEntitlement(SUPABASE_URL: string, SERVICE_ROLE_KEY: string, userId: string) {
   const subRes = await fetch(
