@@ -248,6 +248,18 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Branded "Confirm signup" template — lives in supabase/templates/confirmation.html.
+# For local dev this takes effect automatically via `supabase start`. It is NOT
+# live on the hosted project yet: `supabase config push` pushes this entire
+# [auth] block (including site_url/redirect URLs, which here are local dev
+# placeholders), so don't push it blindly — set this template via the
+# Dashboard (Authentication -> Emails -> Confirm signup) instead, or first
+# bring every other [auth]/[auth.email] value in this file in sync with the
+# hosted project's real settings before ever running `config push`.
+[auth.email.template.confirmation]
+subject = "Confirm your email — Itikaf"
+content_path = "./supabase/templates/confirmation.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true
