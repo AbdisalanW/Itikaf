@@ -33,6 +33,10 @@
   .screen.active { display: block; }
   h1 { font-size: 1.4rem; margin-bottom: 4px; }
   .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+  .brand-mark {
+    width: 64px; height: 64px; border-radius: 20px; margin: 8px 0 16px;
+    box-shadow: var(--shadow);
+  }
   input, textarea {
     width: 100%; padding: 14px 16px; margin-bottom: 12px; border-radius: 16px;
     border: 1px solid #EBDAC2; background: var(--card); color: var(--text); font-size: 1rem;
@@ -145,8 +149,12 @@
 
 <!-- AUTH -->
 <div class="screen active" id="screen-auth">
-  <h1>Welcome to Itikaf</h1>
-  <p class="sub">A quiet space to speak what's on your heart — by voice or by writing.</p>
+  <img class="brand-mark" src="icons/icon-192.png" alt="Itikaf" />
+  <h1>Some things are easier to say out loud</h1>
+  <p class="sub">
+    Itikaf is a private outlet for whatever you're carrying — worry, guilt, gratitude, doubt.
+    Speak it or write it, and let it go somewhere safe.
+  </p>
   <div class="card">
     <input type="email" id="authEmail" placeholder="Email" autocomplete="email" />
     <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" />
@@ -156,8 +164,8 @@
     <button class="secondary" id="signUpBtn">Create account</button>
   </div>
   <p class="hint">
-    Share a dilemma, and Itikaf's AI will reflect with you — surfacing Quran verses, hadith, and
-    duas suited to what you're going through. Every verse and hadith comes from verified Islamic
+    After you share a dilemma, Itikaf's AI reflects back with you — surfacing Quran verses, hadith,
+    and duas suited to what you're going through. Every verse and hadith comes from verified Islamic
     sources; the AI matches and reflects, it never invents scripture.
   </p>
   <p class="hint">Your journal is encrypted on your device before it's ever stored. See our <a class="link" href="privacy.html">privacy policy</a>.</p>
