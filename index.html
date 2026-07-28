@@ -233,6 +233,17 @@
     We never sell or share your data with third parties. Raw audio is only ever kept on this
     device, never uploaded. Read the full <a class="link" href="privacy.html">privacy policy</a>.
   </p>
+  <div class="card crisis-card" id="deleteAccountCard">
+    <p class="translation">Permanently delete your account and all your reflections. This cannot be undone.</p>
+    <button class="secondary" id="deleteAccountBtn">Delete account</button>
+    <div id="deleteAccountConfirm" style="display:none; margin-top:10px;">
+      <p class="translation">Are you sure? All your reflections will be permanently deleted.</p>
+      <button id="deleteAccountConfirmBtn" style="background:linear-gradient(135deg,var(--danger),#A23F2E);">Yes, delete my account</button>
+      <div style="height:10px"></div>
+      <button class="secondary" id="deleteAccountCancelBtn">Cancel</button>
+    </div>
+    <p class="error" id="deleteAccountError" style="display:none;"></p>
+  </div>
 </div>
 
 <!-- PAYWALL -->
@@ -289,6 +300,37 @@ async function signIn(email, password) {
   return data;
 }
 function signOut() { clearSession(); showScreen('auth'); document.getElementById('nav').style.display = 'none'; }
+
+document.getElementById('deleteAccountBtn').onclick = () => {
+  document.getElementById('deleteAccountConfirm').style.display = 'block';
+  document.getElementById('deleteAccountBtn').style.display = 'none';
+};
+document.getElementById('deleteAccountCancelBtn').onclick = () => {
+  document.getElementById('deleteAccountConfirm').style.display = 'none';
+  document.getElementById('deleteAccountBtn').style.display = 'block';
+};
+document.getElementById('deleteAccountConfirmBtn').onclick = async () => {
+  const btn = document.getElementById('deleteAccountConfirmBtn');
+  const errEl = document.getElementById('deleteAccountError');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  try {
+    const session = getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Could not delete account.');
+    signOut();
+  } catch (e) {
+    errEl.textContent = e.message || 'Could not delete account. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Yes, delete my account';
+  }
+};
 
 // ---------- client-side encryption (per-device key, never uploaded) ----------
 async function getDeviceKey() {
