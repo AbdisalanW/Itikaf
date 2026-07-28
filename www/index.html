@@ -257,11 +257,9 @@
 
 <script>
 const SUPABASE_URL = 'https://hikedhwzdqnygcoinlwd.supabase.co';
-// TODO: replace once the RevenueCat account + app are set up (see project notes).
-// Safe to leave as a placeholder in the meantime — check-entitlement/analyze-entry
-// enforce the free-tier limit from our own DB regardless of whether RevenueCat is
-// configured; this key only gates the actual "Subscribe" purchase flow.
-const REVENUECAT_PUBLIC_IOS_KEY = 'REPLACE_WITH_REVENUECAT_PUBLIC_SDK_KEY';
+// Real production key for the "Itikaf (App Store)" app in RevenueCat
+// (App Store Connect is fully linked as of 2026-07-24).
+const REVENUECAT_PUBLIC_IOS_KEY = 'appl_yWSldWQsZznSVWHtdiBAZnJgJCq';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpa2VkaHd6ZHFueWdjb2lubHdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzI2NTksImV4cCI6MjEwMDQwODY1OX0.25n_LamrcB6Bob5zzR4BuZBpKFpFVrU6SuxhEFP0F4E';
 
 // ---------- tiny auth/session helpers (fetch-based, no SDK) ----------
