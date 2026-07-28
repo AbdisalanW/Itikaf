@@ -707,6 +707,7 @@ async function loadEntries() {
   listEl.innerHTML = '<p class="hint">Loading...</p>';
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/journal_entries?select=id,encrypted_transcript,language_detected,created_at,entry_type,reflection,crisis_flag,` +
+    `quran_arabic_text,quran_translation,quran_source,` +
     `content:content_item_id(arabic_text,translation,source,type),istighfar:istighfar_item_id(arabic_text,translation,source)` +
     `&order=created_at.desc`,
     { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` } },
@@ -747,7 +748,12 @@ async function openDetail(id) {
   if (row.crisis_flag) {
     renderCrisis(resultEl);
   } else if (row.reflection) {
-    renderResult(resultEl, { reflection: row.reflection, content: row.content, istighfar: row.istighfar });
+    // A live-fetched Quran verse has no content_items row to join, so its
+    // text was snapshotted directly onto the entry instead (see analyze-entry).
+    const content = row.content || (row.quran_arabic_text
+      ? { arabic_text: row.quran_arabic_text, translation: row.quran_translation, source: row.quran_source }
+      : null);
+    renderResult(resultEl, { reflection: row.reflection, content, istighfar: row.istighfar });
   } else {
     resultEl.innerHTML = '';
   }
