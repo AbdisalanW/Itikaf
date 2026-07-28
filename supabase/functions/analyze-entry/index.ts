@@ -73,26 +73,26 @@ content separately. Your jobs, given a journal transcript, are:
 2. Pick 1-3 theme tags that best fit, ONLY from this fixed list: ${THEME_TAXONOMY.join(", ")}.
 3. Choose the SINGLE best-fitting piece of content for this specific situation — either a hadith/dua from
    the list below (via content_item_id), OR a Quran verse from anywhere across all 114 surahs (via
-   quran_reference), never both. Prefer whichever genuinely fits better; don't default to Quran just because
-   it's available, and don't stretch a weak match just to fill the field — leave both null if genuinely
-   nothing fits well.
+   quran_surah/quran_ayah_start/quran_ayah_end), never both. Prefer whichever genuinely fits better; don't
+   default to Quran just because it's available, and don't stretch a weak match just to fill the field —
+   leave everything null if genuinely nothing fits well.
    - content_item_id: pick by id from this exact list, based on each item's actual translation, not just
      shared tags (two items can share a tag and differ hugely in fit):
 ${candidateList}
-   - quran_reference: {"surah": 1-114, "ayah_start": number, "ayah_end": number} — ayah_end must equal
-     ayah_start or be at most 2 ayahs later (keep excerpts short and focused). Choose based on your own
-     knowledge of the Quran, picking the specific ayah(s) whose PLAIN MEANING is directly comforting,
-     reflective, or instructive for someone going through this — not a passage that's primarily legal,
-     genealogical, or narrative/historical with no direct bearing on personal emotional hardship. Be exact
-     about the reference; if you are not confident of the precise surah/ayah number, leave this null instead
-     of guessing.
+   - quran_surah (1-114) / quran_ayah_start / quran_ayah_end: set all three together, or leave all three
+     null. quran_ayah_end must equal quran_ayah_start or be at most 2 ayahs later (keep excerpts short and
+     focused). Choose based on your own knowledge of the Quran, picking the specific ayah(s) whose PLAIN
+     MEANING is directly comforting, reflective, or instructive for someone going through this — not a
+     passage that's primarily legal, genealogical, or narrative/historical with no direct bearing on
+     personal emotional hardship. Be exact about the reference; if you are not confident of the precise
+     surah/ayah number, leave these null instead of guessing.
 4. Write a warm, non-preachy reflection (3-5 sentences) acknowledging the specific situation the person
-   described, and — if you picked content_item_id or quran_reference — explain in your own words why that
-   particular verse/hadith/dua speaks to it. Do not quote or paraphrase its Arabic/translation text directly
-   (the app displays that separately below your reflection, fetched from its own verified source); refer to
-   it only in general terms (e.g. "the reflection below on patience..."). Do not give religious rulings or
-   claim authority you don't have.
-Respond ONLY with JSON: {"crisis_flag": boolean, "theme_tags": string[], "content_item_id": string|null, "quran_reference": {"surah": number, "ayah_start": number, "ayah_end": number}|null, "reflection": string}`;
+   described, and — if you picked a content_item_id or a Quran reference — explain in your own words why
+   that particular verse/hadith/dua speaks to it. Do not quote or paraphrase its Arabic/translation text
+   directly (the app displays that separately below your reflection, fetched from its own verified source);
+   refer to it only in general terms (e.g. "the reflection below on patience..."). Do not give religious
+   rulings or claim authority you don't have.
+Respond ONLY with JSON: {"crisis_flag": boolean, "theme_tags": string[], "content_item_id": string|null, "quran_surah": number|null, "quran_ayah_start": number|null, "quran_ayah_end": number|null, "reflection": string}`;
 }
 
 // Fetches verified Arabic (Uthmani script) + English (Sahih International)
@@ -107,22 +107,28 @@ async function fetchQuranVerse(
   if (!Number.isInteger(ayahStart) || ayahStart < 1) return null;
   if (!Number.isInteger(ayahEnd) || ayahEnd < ayahStart || ayahEnd - ayahStart > 2) return null;
 
-  const arabicParts: string[] = [];
-  const translationParts: string[] = [];
-  for (let ayah = ayahStart; ayah <= ayahEnd; ayah++) {
-    const [arRes, enRes] = await Promise.all([
-      fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/quran-uthmani`),
-      fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.sahih`),
-    ]);
-    if (!arRes.ok || !enRes.ok) return null;
-    const [arData, enData] = await Promise.all([arRes.json(), enRes.json()]);
-    if (arData.code !== 200 || enData.code !== 200 || !arData.data?.text || !enData.data?.text) return null;
-    arabicParts.push(arData.data.text);
-    translationParts.push(enData.data.text);
-  }
+  // Fetch every ayah's Arabic+English in parallel (not one ayah at a time) —
+  // this endpoint has no multi-ayah range lookup, and a 3-ayah pick was taking
+  // up to 6 sequential round-trips, adding enough latency to occasionally
+  // cause the client's connection to drop before any response came back.
+  const ayahNumbers = Array.from({ length: ayahEnd - ayahStart + 1 }, (_, i) => ayahStart + i);
+  const results = await Promise.all(
+    ayahNumbers.map(async (ayah) => {
+      const [arRes, enRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/quran-uthmani`),
+        fetch(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.sahih`),
+      ]);
+      if (!arRes.ok || !enRes.ok) return null;
+      const [arData, enData] = await Promise.all([arRes.json(), enRes.json()]);
+      if (arData.code !== 200 || enData.code !== 200 || !arData.data?.text || !enData.data?.text) return null;
+      return { arabic: arData.data.text as string, translation: enData.data.text as string };
+    }),
+  );
+  if (results.some((r) => r === null)) return null;
+  const verified = results as { arabic: string; translation: string }[];
   return {
-    arabic_text: arabicParts.join(" "),
-    translation: translationParts.join(" "),
+    arabic_text: verified.map((r) => r.arabic).join(" "),
+    translation: verified.map((r) => r.translation).join(" "),
     source: `Quran ${surah}:${ayahStart}${ayahEnd > ayahStart ? `-${ayahEnd}` : ""}`,
   };
 }
@@ -166,10 +172,10 @@ Deno.serve(async (req) => {
     });
   }
 
-  type QuranRef = { surah: number; ayah_start: number; ayah_end: number } | null;
   let parsed: {
-    crisis_flag: boolean; theme_tags: string[];
-    content_item_id: string | null; quran_reference: QuranRef; reflection: string;
+    crisis_flag: boolean; theme_tags: string[]; content_item_id: string | null;
+    quran_surah: number | null; quran_ayah_start: number | null; quran_ayah_end: number | null;
+    reflection: string;
   };
   let candidates: Candidate[] = [];
 
@@ -177,7 +183,10 @@ Deno.serve(async (req) => {
     // Deterministic match — skip the model call entirely. The crisis screen
     // doesn't use theme_tags/content/reflection, and there's no reason to give
     // a probabilistic classifier a chance to talk this back down.
-    parsed = { crisis_flag: true, theme_tags: [], content_item_id: null, quran_reference: null, reflection: "" };
+    parsed = {
+      crisis_flag: true, theme_tags: [], content_item_id: null,
+      quran_surah: null, quran_ayah_start: null, quran_ayah_end: null, reflection: "",
+    };
   } else {
     // Fetch the hadith/dua candidate pool up front so Claude can pick the
     // single best-fitting item by actually reading each one, rather than us
@@ -218,19 +227,20 @@ Deno.serve(async (req) => {
                 crisis_flag: { type: "boolean" },
                 theme_tags: { type: "array", items: { type: "string", enum: THEME_TAXONOMY } },
                 content_item_id: { type: ["string", "null"], enum: [...candidates.map((c) => c.id), null] },
-                quran_reference: {
-                  type: ["object", "null"],
-                  properties: {
-                    surah: { type: "integer", minimum: 1, maximum: 114 },
-                    ayah_start: { type: "integer", minimum: 1 },
-                    ayah_end: { type: "integer", minimum: 1 },
-                  },
-                  required: ["surah", "ayah_start", "ayah_end"],
-                  additionalProperties: false,
-                },
+                // Flat nullable primitives, not a nested nullable object. A previous
+                // version used a nested {type:["object","null"], required:[...]} shape
+                // for this, which is suspected (not yet confirmed) to have made every
+                // response fail schema validation. This flatter shape mirrors
+                // content_item_id's already-proven-working nullable pattern instead.
+                quran_surah: { type: ["integer", "null"], minimum: 1, maximum: 114 },
+                quran_ayah_start: { type: ["integer", "null"], minimum: 1 },
+                quran_ayah_end: { type: ["integer", "null"], minimum: 1 },
                 reflection: { type: "string" },
               },
-              required: ["crisis_flag", "theme_tags", "content_item_id", "quran_reference", "reflection"],
+              required: [
+                "crisis_flag", "theme_tags", "content_item_id",
+                "quran_surah", "quran_ayah_start", "quran_ayah_end", "reflection",
+              ],
               additionalProperties: false,
             },
           },
@@ -262,7 +272,10 @@ Deno.serve(async (req) => {
         "stop_reason:", claudeData.stop_reason,
         "content block types:", claudeData.content?.map((b: { type: string }) => b.type),
       );
-      parsed = { crisis_flag: true, theme_tags: [], content_item_id: null, quran_reference: null, reflection: "" };
+      parsed = {
+        crisis_flag: true, theme_tags: [], content_item_id: null,
+        quran_surah: null, quran_ayah_start: null, quran_ayah_end: null, reflection: "",
+      };
     }
   }
   const themeTags = (parsed.theme_tags || []).filter((t) => THEME_TAXONOMY.includes(t));
@@ -290,24 +303,30 @@ Deno.serve(async (req) => {
     // Claude already picked the best-fitting hadith/dua id from the exact
     // candidates it was shown above — just look it up locally, no extra query.
     content = candidates.find((c) => c.id === parsed.content_item_id) || null;
+    // The Quran-verse fetch and the istighfar lookup are independent of each
+    // other — run them concurrently rather than one after the other, same
+    // latency reasoning as fetchQuranVerse's internal parallelization above.
+    const wantsQuranFetch = !content && parsed.quran_surah && parsed.quran_ayah_start && parsed.quran_ayah_end;
+    const [quranResult, istighfarRows] = await Promise.all([
+      wantsQuranFetch
+        ? fetchQuranVerse(parsed.quran_surah!, parsed.quran_ayah_start!, parsed.quran_ayah_end!)
+        : Promise.resolve(null),
+      fetch(`${SUPABASE_URL}/rest/v1/content_items?type=eq.istighfar`, {
+        headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
+      }).then((r) => r.json()),
+    ]);
     // If it picked a Quran reference instead, fetch the real verified text —
     // never trust the model's own rendering of Arabic scripture. Falls back
     // to null (not an error) if the reference is invalid or the API is down,
     // same "just don't show a match" degradation as any other empty result.
     // Tracked separately from `content` so the DB insert below knows which of
     // content_item_id (a real FK) vs quran_* (a text snapshot) to fill in.
-    if (!content && parsed.quran_reference) {
-      const { surah, ayah_start, ayah_end } = parsed.quran_reference;
-      quranContent = await fetchQuranVerse(surah, ayah_start, ayah_end);
+    if (wantsQuranFetch) {
+      quranContent = quranResult;
       content = quranContent;
     }
     // PostgREST's order= param only accepts column names, not function calls
     // like random() — fetch the small istighfar set and pick one client-side.
-    const istighfarRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/content_items?type=eq.istighfar`,
-      { headers: { apikey: SERVICE_ROLE_KEY, Authorization: `Bearer ${SERVICE_ROLE_KEY}` } },
-    );
-    const istighfarRows = await istighfarRes.json();
     istighfar = Array.isArray(istighfarRows) && istighfarRows.length > 0
       ? istighfarRows[Math.floor(Math.random() * istighfarRows.length)]
       : null;
