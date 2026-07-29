@@ -35,8 +35,20 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Use the client's actual declared content-type rather than assuming webm —
+  // iOS Safari/WKWebView has no WebM support at all and really records in
+  // whatever format MediaRecorder.mimeType reports (typically audio/mp4).
+  // Whisper picks its decoder from the filename extension, so mismatching
+  // this with the real bytes risks silently wrong/degraded transcription.
+  const contentType = req.headers.get("content-type") || "audio/webm";
+  const extension = contentType.includes("mp4") ? "mp4"
+    : contentType.includes("mpeg") ? "mp3"
+    : contentType.includes("wav") ? "wav"
+    : contentType.includes("ogg") ? "ogg"
+    : "webm";
+
   const form = new FormData();
-  form.append("file", new Blob([audioBuffer], { type: "audio/webm" }), "entry.webm");
+  form.append("file", new Blob([audioBuffer], { type: contentType }), `entry.${extension}`);
   form.append("model", "whisper-1");
   form.append("response_format", "verbose_json");
 

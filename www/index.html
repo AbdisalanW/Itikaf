@@ -613,12 +613,19 @@ recordBtn.addEventListener('click', async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     chunks = [];
     mediaRecorder = new MediaRecorder(stream);
+    // iOS Safari/WKWebView has no WebM support at all — MediaRecorder actually
+    // records in whatever format the platform supports (typically audio/mp4),
+    // and mediaRecorder.mimeType reports the real one being used. Hardcoding
+    // 'audio/webm' here mislabels the resulting Blob, which plays back fine
+    // nowhere: local <audio> playback picks a decoder based on this declared
+    // type, so a real mp4 file labeled "webm" fails to play.
+    const recordingMimeType = mediaRecorder.mimeType || 'audio/webm';
     mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
     mediaRecorder.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       recordBtn.classList.remove('recording');
       stopRecordTimer();
-      const blob = new Blob(chunks, { type: 'audio/webm' });
+      const blob = new Blob(chunks, { type: recordingMimeType });
       handleVoiceEntry(blob);
     };
     mediaRecorder.start();
@@ -638,7 +645,7 @@ async function handleVoiceEntry(blob) {
   try {
     const transcribeRes = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
       method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'audio/webm' },
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': blob.type || 'audio/webm' },
       body: blob,
     });
     const { transcript, language } = await transcribeRes.json();
