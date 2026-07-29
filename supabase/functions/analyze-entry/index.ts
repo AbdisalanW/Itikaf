@@ -212,7 +212,13 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-5",
-        max_tokens: 600,
+        // The real root cause of every "blank result" bug this session: this
+        // model uses extended thinking by default, which counts against
+        // max_tokens. At 600, thinking alone consumed the whole budget
+        // (stop_reason: "max_tokens", response cut off with only a "thinking"
+        // block — no text block ever produced). Generous headroom here so
+        // thinking + the full JSON response both comfortably fit.
+        max_tokens: 2000,
         system: buildSystemPrompt(candidates),
         messages: [{ role: "user", content: transcript }],
         // Structured outputs guarantee schema-conforming JSON — more reliable
@@ -226,15 +232,26 @@ Deno.serve(async (req) => {
               properties: {
                 crisis_flag: { type: "boolean" },
                 theme_tags: { type: "array", items: { type: "string", enum: THEME_TAXONOMY } },
-                content_item_id: { type: ["string", "null"], enum: [...candidates.map((c) => c.id), null] },
-                // Flat nullable primitives, not a nested nullable object. A previous
-                // version used a nested {type:["object","null"], required:[...]} shape
-                // for this, which is suspected (not yet confirmed) to have made every
-                // response fail schema validation. This flatter shape mirrors
-                // content_item_id's already-proven-working nullable pattern instead.
-                quran_surah: { type: ["integer", "null"], minimum: 1, maximum: 114 },
-                quran_ayah_start: { type: ["integer", "null"], minimum: 1 },
-                quran_ayah_end: { type: ["integer", "null"], minimum: 1 },
+                // Nullable fields use anyOf, not a `type: [...]` array — confirmed via
+                // Anthropic's actual error response that their schema validator rejects
+                // `enum` combined with an array-form `type` ("Enum value '...' does not
+                // match declared type '['string', 'null']'"), which was silently failing
+                // every single request at the request-validation stage (400, before any
+                // generation). anyOf splits each nullable field into two single-type
+                // sub-schemas instead, avoiding that combination entirely.
+                content_item_id: {
+                  anyOf: [
+                    { type: "string", enum: candidates.map((c) => c.id) },
+                    { type: "null" },
+                  ],
+                },
+                // No minimum/maximum here — Anthropic's schema validator rejects those
+                // on integer types entirely ("properties maximum, minimum are not
+                // supported"). Actual range checks still happen at runtime in
+                // fetchQuranVerse(), so nothing is lost by dropping them from the schema.
+                quran_surah: { anyOf: [{ type: "integer" }, { type: "null" }] },
+                quran_ayah_start: { anyOf: [{ type: "integer" }, { type: "null" }] },
+                quran_ayah_end: { anyOf: [{ type: "integer" }, { type: "null" }] },
                 reflection: { type: "string" },
               },
               required: [
