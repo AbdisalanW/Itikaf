@@ -76,13 +76,16 @@ jobs:
           # workspace-wide, unlike the signing settings above — it's just a
           # version string, not something Pods targets reject. App Store
           # Connect requires every upload to have a strictly higher build
-          # number than the last, so this is set to the GitHub Actions run
-          # number (always increasing) rather than the static "1" committed
-          # in project.pbxproj — otherwise every re-run after the first
-          # upload fails with ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE.
+          # number than the last. github.run_number alone isn't enough —
+          # it's identical across re-runs of the same workflow run (only
+          # github.run_attempt increments then), which caused a real upload
+          # failure (ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE, "must be
+          # higher than ... 13") the first time this happened. Combining
+          # both guarantees a strictly higher number both for fresh runs
+          # and for re-runs of the same run.
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release \
             -archivePath $RUNNER_TEMP/App.xcarchive archive \
-            CURRENT_PROJECT_VERSION=${{ github.run_number }}
+            CURRENT_PROJECT_VERSION=$(( ${{ github.run_number }} * 100 + ${{ github.run_attempt }} ))
 
       - name: Export IPA
         run: |
