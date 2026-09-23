@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>Itikaf — Privacy</title>
+<style>
+  html { background:#0A0A0B; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0A0A0B; color:#EDE4D0; max-width:640px; margin:0 auto;
+    padding: max(env(safe-area-inset-top), 24px) 22px 60px; line-height:1.65; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size:1.7rem; font-weight:600; }
+  h2 { font-size:0.75rem; letter-spacing:0.16em; text-transform:uppercase; margin-top:32px; color:#C9A96E; }
+  li { margin-bottom:10px; color:rgba(237,228,208,0.85); }
+  a { color:#DFC08A; }
+</style>
+</head>
+<body>
+<h1>Privacy Policy</h1>
+<p>Itikaf exists so you can speak freely about what's on your heart. That only works if you can trust
+what happens to your words. Here's exactly what we do and don't do.</p>
+
+<h2>What we never do</h2>
+<ul>
+  <li>We never sell, rent, or share your data with data brokers, advertisers, or any third party for
+  marketing purposes — no exceptions.</li>
+  <li>We do not use ad SDKs, analytics SDKs, or location-tracking SDKs of any kind.</li>
+  <li>We do not keep your voice recordings on our servers. Audio is sent for transcription and
+  discarded as soon as the transcript comes back — it is never written to storage. Your own copy of
+  the recording stays only on your phone.</li>
+</ul>
+
+<h2>What we do</h2>
+<ul>
+  <li>When you record an entry, the audio is sent to OpenAI's Whisper service to be turned into text.
+  The text of your entry (spoken or written) is then sent to Anthropic's Claude to check for signs of
+  crisis, choose a relevant verse, hadith or dua, and write a short reflection. Both providers process
+  it only to return a result to us, under terms that don't allow them to train on it. We don't log
+  your entry's text.</li>
+  <li>Your journal text is then encrypted on your own device before it is stored, using a key that
+  stays on your device. We cannot read your stored journal text.</li>
+  <li>We do store, unencrypted and linked to your account: the short reflection written for you,
+  which verse, hadith or dua was matched, a few theme tags (such as "grief" or "gratitude"), the
+  detected language, and whether the entry was flagged as a possible crisis. This lets you reopen past
+  reflections. It's deleted with your account.</li>
+  <li>If your entry suggests you may be in crisis, we show you crisis resources (such as the 988
+  Suicide &amp; Crisis Lifeline) instead of a normal reflection. Itikaf is not a substitute for a
+  qualified scholar or mental health professional.</li>
+</ul>
+
+<h2>Finding a therapist</h2>
+<ul>
+  <li>If you search for therapists, the ZIP code you enter is sent to the U.S. government's public NPI
+  Registry to look up licensed providers near it. We don't save your ZIP code on our servers; the app
+  remembers it on your phone so you don't have to retype it.</li>
+  <li>Links to therapist directories open those websites, which have their own privacy policies.</li>
+</ul>
+
+<h2>Subscriptions</h2>
+<ul>
+  <li>If you subscribe to Itikaf Premium, your payment is handled entirely by Apple through the App
+  Store — we never see or store your card details.</li>
+  <li>We use RevenueCat to keep track of whether your subscription is active. RevenueCat receives your
+  subscription status and your Itikaf account ID (a random identifier, not your email), but never
+  your journal entries or anything you write.</li>
+</ul>
+
+<h2>Your control</h2>
+<ul>
+  <li>You can delete your account and all associated data at any time from Settings.</li>
+  <li>Because the encryption key lives only on your device, if you delete the app or switch phones,
+  your past journal text can no longer be decrypted — by you or by us. Your reflections and matched
+  verses remain visible.</li>
+</ul>
+
+<p><a href="index.html">&larr; Back to Itikaf</a></p>
+</body>
+</html>
